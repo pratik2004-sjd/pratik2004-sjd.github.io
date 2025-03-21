@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #eef2f3;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.2);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        label {
+            font-weight: 500;
+            display: block;
+            text-align: left;
+            margin-top: 10px;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            transition: 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .result {
+            font-size: 22px;
+            font-weight: bold;
+            color: #27ae60;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Inventory Dashboard</h2>
+        <label>Start Date: <input type="date" id="startDate"></label>
+        <label>End Date: <input type="date" id="endDate"></label>
+        <label>Type: 
+            <select id="transactionType">
+                <option value="">All</option>
+                <option value="Purchase">Purchase</option>
+                <option value="Sale">Sale</option>
+            </select>
+        </label>
+        <label>Customer: 
+            <select id="customer">
+                <option value="">All</option>
+            </select>
+        </label>
+        <button onclick="filterData()">Filter</button>
+        <div class="result">Total Quantity: <span id="totalQuantity">0</span></div>
+    </div>
+
+    <script>
+        const sheetID = "1t554-b5hjuLvRlgrCMjxpgMCBLW9lDf6";
+        const sheetName = "Sheet1";
+        const apiURL = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:csv&sheet=${sheetName}`;
+        let rawData = [];
+        let customerSet = new Set();
+
+        async function fetchData() {
+            try {
+                const response = await axios.get(apiURL);
+                const csvData = response.data.split("\n").map(row => row.split(","));
+                csvData.shift(); // Remove header row
+                rawData = csvData.map(row => {
+                    const customer = row[1] || "";
+                    if (customer) customerSet.add(customer);
+                    return {
+                        date: row[0] || "", 
+                        particulars: customer, 
+                        type: row[2] || "", 
+                        quantity: parseFloat(row[4] || row[7] || "0")
+                    };
+                });
+                populateCustomerDropdown();
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            }
+        }
+
+        function populateCustomerDropdown() {
+            const customerDropdown = document.getElementById("customer");
+            customerSet.forEach(customer => {
+                const option = document.createElement("option");
+                option.value = customer;
+                option.textContent = customer;
+                customerDropdown.appendChild(option);
+            });
+        }
+
+        function filterData() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const type = document.getElementById('transactionType').value;
+            const customer = document.getElementById('customer').value;
+            
+            const filtered = rawData.filter(row => {
+                const rowDate = new Date(row.date);
+                return (!startDate || rowDate >= new Date(startDate)) &&
+                       (!endDate || rowDate <= new Date(endDate)) &&
+                       (!type || row.type.includes(type)) &&
+                       (!customer || row.particulars === customer);
+            });
+            
+            const totalQuantity = filtered.reduce((sum, row) => sum + row.quantity, 0);
+            document.getElementById('totalQuantity').textContent = totalQuantity.toFixed(2);
+        }
+
+        fetchData();
+    </script>
+</body>
+</html>
