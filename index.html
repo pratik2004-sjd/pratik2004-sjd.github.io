@@ -3,14 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Inventory</title>
+    <title>Live Inventory Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            text-align: center;
+        }
+        table {
+            width: 90%;
+            margin: auto;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        input {
+            margin-bottom: 10px;
+            padding: 5px;
+            width: 300px;
+        }
+    </style>
 </head>
 <body>
 
-    <h2>Inventory Data</h2>
-    <table border="1" id="inventoryTable">
+    <h2>📊 Inventory Dashboard</h2>
+    <input type="text" id="searchBox" placeholder="Search by Item / Stock / Price" onkeyup="filterTable()">
+    
+    <table id="inventoryTable">
         <thead>
             <tr>
+                <th>Date</th>
                 <th>Item</th>
                 <th>Stock</th>
                 <th>Price</th>
@@ -29,15 +58,19 @@
             try {
                 const response = await fetch(url);
                 const text = await response.text();
-                const json = JSON.parse(text.substring(47, text.length - 2)); // Trim unwanted JSON text
+                const json = JSON.parse(text.substring(47, text.length - 2));
                 const rows = json.table.rows;
 
                 let tableBody = "";
                 rows.forEach(row => {
+                    const rawDate = row.c[0]?.v || "";
+                    const formattedDate = formatDate(rawDate);
+
                     tableBody += `<tr>
-                        <td>${row.c[0]?.v || ""}</td>
+                        <td>${formattedDate}</td>
                         <td>${row.c[1]?.v || ""}</td>
                         <td>${row.c[2]?.v || ""}</td>
+                        <td>${row.c[3]?.v || ""}</td>
                     </tr>`;
                 });
 
@@ -47,7 +80,24 @@
             }
         }
 
-        fetchSheetData(); // Fetch data on page load
+        function formatDate(dateStr) {
+            if (!dateStr.includes("Date")) return dateStr;
+            let dateParts = dateStr.match(/\d+/g);
+            let d = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+            return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+        }
+
+        function filterTable() {
+            let input = document.getElementById("searchBox").value.toLowerCase();
+            let rows = document.querySelectorAll("#inventoryTable tbody tr");
+
+            rows.forEach(row => {
+                let text = row.innerText.toLowerCase();
+                row.style.display = text.includes(input) ? "" : "none";
+            });
+        }
+
+        fetchSheetData();
         setInterval(fetchSheetData, 30000); // Auto-refresh every 30 sec
     </script>
 
