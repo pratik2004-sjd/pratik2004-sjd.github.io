@@ -3,46 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Inventory Dashboard</title>
+    <title>Inventory Dashboard</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
-            padding: 20px;
             text-align: center;
+            background-color: #f8f9fa;
+        }
+        h2 {
+            font-size: 28px;
+            margin: 20px;
         }
         table {
             width: 90%;
             margin: auto;
             border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
         }
         th, td {
-            border: 1px solid black;
-            padding: 8px;
-            text-align: center;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
         }
         th {
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        tr:nth-child(even) {
             background-color: #f2f2f2;
         }
-        input {
-            margin-bottom: 10px;
-            padding: 5px;
+        input, select {
+            padding: 8px;
             width: 300px;
+            margin: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
         }
     </style>
 </head>
 <body>
 
     <h2>📊 Inventory Dashboard</h2>
-    <input type="text" id="searchBox" placeholder="Search by Item / Stock / Price" onkeyup="filterTable()">
     
+    <input type="text" id="searchBox" placeholder="Search items..." onkeyup="filterTable()">
+    <select id="filterStock" onchange="filterTable()">
+        <option value="">All Stock</option>
+        <option value="Purchase">Purchase</option>
+        <option value="TAX INVOICE-CEMENT">Tax Invoice</option>
+    </select>
+
     <table id="inventoryTable">
         <thead>
             <tr>
-                <th>Date</th>
-                <th>Item</th>
-                <th>Stock</th>
-                <th>Price</th>
+                <th onclick="sortTable(0)">Date 📅</th>
+                <th onclick="sortTable(1)">Item 📦</th>
+                <th onclick="sortTable(2)">Stock 📊</th>
+                <th onclick="sortTable(3)">Price 💰</th>
             </tr>
         </thead>
         <tbody>
@@ -52,7 +72,7 @@
 
     <script>
         async function fetchSheetData() {
-            const sheetID = "1t554-b5hjuLvRlgrCMjxpgMCBLW9lDf6"; // Your Sheet ID
+            const sheetID = "1t554-b5hjuLvRlgrCMjxpgMCBLW9lDf6"; // Replace with your Google Sheet ID
             const url = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json`;
 
             try {
@@ -89,12 +109,29 @@
 
         function filterTable() {
             let input = document.getElementById("searchBox").value.toLowerCase();
+            let stockFilter = document.getElementById("filterStock").value.toLowerCase();
             let rows = document.querySelectorAll("#inventoryTable tbody tr");
 
             rows.forEach(row => {
                 let text = row.innerText.toLowerCase();
-                row.style.display = text.includes(input) ? "" : "none";
+                let stockText = row.cells[2].innerText.toLowerCase();
+                let match = text.includes(input) && (stockFilter === "" || stockText.includes(stockFilter));
+
+                row.style.display = match ? "" : "none";
             });
+        }
+
+        function sortTable(n) {
+            let table = document.getElementById("inventoryTable");
+            let rows = Array.from(table.rows).slice(1);
+            let sortedRows = rows.sort((rowA, rowB) => {
+                let cellA = rowA.cells[n].innerText;
+                let cellB = rowB.cells[n].innerText;
+
+                return isNaN(cellA) ? cellA.localeCompare(cellB) : cellA - cellB;
+            });
+
+            table.tBodies[0].append(...sortedRows);
         }
 
         fetchSheetData();
